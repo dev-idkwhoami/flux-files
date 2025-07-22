@@ -1,0 +1,76 @@
+{
+    "name": "idkwhoami/flux-files",
+    "description": "A file manager based on FluxUI",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.1.0-dev",
+    "keywords": [
+        "Idkwhoami",
+        "laravel",
+        "flux-files"
+    ],
+    "autoload": {
+        "psr-4": {
+            "Idkwhoami\\FluxFiles\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Idkwhoami\\FluxFiles\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "pretty": "./vendor/bin/pint --dirty",
+        "pint": "./vendor/bin/pint",
+        "analyse": "./vendor/bin/phpstan analyse --memory-limit 4G",
+        "test": "./vendor/bin/pest"
+    },
+    "authors": [
+        {
+            "name": "idkwhoami"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^8.4",
+        "livewire/flux": "^2.2.3",
+        "livewire/flux-pro": "^2.2.3"
+    },
+    "require-dev": {
+        "illuminate/support": "^11.41",
+        "larastan/larastan": "^2.9",
+        "laravel/pint": "^1.20",
+        "nunomaduro/collision": "^8.1.1||^7.10.0",
+        "orchestra/testbench": "^9.9",
+        "pestphp/pest": "^3.7",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.1",
+        "phpstan/extension-installer": "^1.3",
+        "phpstan/phpstan": "^1.12",
+        "phpstan/phpstan-deprecation-rules": "^1.1",
+        "phpstan/phpstan-phpunit": "^1.3"
+    },
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "preferred-install": "dist",
+        "optimize-autoloader": false,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Idkwhoami\\FluxFiles\\FluxFilesServiceProvider"
+            ]
+        }
+    },
+    "repositories": {
+        "flux-pro": {
+            "type": "composer",
+            "url": "https://composer.fluxui.dev"
+        }
+    }
+}
