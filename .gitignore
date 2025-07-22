@@ -29,6 +29,7 @@ phpunit.xml
 testbench.yaml
 /docs
 /coverage
+tasks.md
 
 #FluxUI
 auth.json

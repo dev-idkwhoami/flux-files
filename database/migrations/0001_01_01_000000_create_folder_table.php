@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class () extends Migration {
+    public function up(): void
+    {
+        $tableName = config('flux-files.eloquent.prefix')
+            ? config('flux-files.eloquent.prefix') . 'folders'
+            : 'folders';
+
+        Schema::create($tableName, function (Blueprint $table) {
+            $table->fluxFilesId();
+
+            $table->string('name');
+            $table->string('path');
+            $table->nullableFluxFilesForeignId('parent_id');
+            if (config('flux-files.tenancy.enabled', false) === true) {
+                $table->nullableFluxFilesForeignId('tenant_id');
+                $table->index(['tenant_id']);
+            }
+            $table->boolean('is_root')->default(false);
+            $table->timestamps();
+
+            $table->index(['parent_id']);
+            $table->index(['path']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('folders');
+    }
+};
