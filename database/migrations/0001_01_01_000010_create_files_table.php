@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('folder', function (Blueprint $table) {
+        Schema::create('files', function (Blueprint $table) {
             $table->fluxFilesId();
 
             $table->string('name');
@@ -33,6 +33,6 @@ return new class () extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('folder');
+        Schema::dropIfExists('files');
     }
 };
