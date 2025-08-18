@@ -16,7 +16,7 @@ return new class () extends Migration {
             $table->string('disk');
             $table->string('mime_type');
             $table->unsignedBigInteger('size');
-            $table->fluxFilesForeignId('folder_id');
+            $table->nullableFluxFilesForeignId('folder_id');
             if (config('flux-files.tenancy.enabled', false) === true) {
                 $table->nullableFluxFilesForeignId('tenant_id');
                 $table->index(['tenant_id']);

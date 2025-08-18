@@ -17,7 +17,7 @@ class InstallCommand extends Command
     {
         $this->call('flux:icon', [
             'icons' => [
-                'image', 'video', 'music', 'file-text', 'folder-archive', 'file-question-mark'
+                'image', 'video', 'music', 'file-text', 'folder-archive', 'file-question-mark', 'house', 'layout-grid', 'table', 'arrow-down-wide-narrow', 'arrow-up-narrow-wide'
             ]
         ]);
 

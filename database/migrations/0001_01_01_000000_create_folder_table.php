@@ -21,7 +21,6 @@ return new class () extends Migration {
                 $table->nullableFluxFilesForeignId('tenant_id');
                 $table->index(['tenant_id']);
             }
-            $table->boolean('is_root')->default(false);
             $table->timestamps();
 
             $table->index(['parent_id']);

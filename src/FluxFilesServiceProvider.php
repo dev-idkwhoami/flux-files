@@ -3,8 +3,10 @@
 namespace Idkwhoami\FluxFiles;
 
 use Idkwhoami\FluxFiles\Commands\InstallCommand;
+use Idkwhoami\FluxFiles\Livewire\FileBrowser;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class FluxFilesServiceProvider extends ServiceProvider
 {
@@ -25,6 +27,8 @@ class FluxFilesServiceProvider extends ServiceProvider
         $this->loadViewComponentsAs('flux-files', [
             //
         ]);
+
+        $this->registerLivewireComponents();
     }
 
     /**
@@ -93,6 +97,11 @@ class FluxFilesServiceProvider extends ServiceProvider
         ]);
     }
 
+    public function registerLivewireComponents(): void
+    {
+        Livewire::component('flux-file-browser', FileBrowser::class);
+    }
+
     /**
      * Register Blueprint macros for dynamic ID columns
      */
@@ -101,7 +110,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         Blueprint::macro('fluxFilesId', function (string $column = 'id') {
             $idType = config('flux-files.eloquent.id_type', 'bigint');
 
-            return match($idType) {
+            return match ($idType) {
                 'ulid' => $this->ulid($column)->primary(),
                 'uuid' => $this->uuid($column)->primary(),
                 default => $this->id($column),
@@ -111,7 +120,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         Blueprint::macro('fluxFilesForeignId', function (string $column) {
             $idType = config('flux-files.eloquent.id_type', 'bigint');
 
-            return match($idType) {
+            return match ($idType) {
                 'ulid' => $this->ulid($column),
                 'uuid' => $this->uuid($column),
                 default => $this->unsignedBigInteger($column),
@@ -121,7 +130,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         Blueprint::macro('nullableFluxFilesForeignId', function (string $column) {
             $idType = config('flux-files.eloquent.id_type', 'bigint');
 
-            return match($idType) {
+            return match ($idType) {
                 'ulid' => $this->ulid($column)->nullable(),
                 'uuid' => $this->uuid($column)->nullable(),
                 default => $this->unsignedBigInteger($column)->nullable(),

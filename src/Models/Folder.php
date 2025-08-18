@@ -18,11 +18,6 @@ class Folder extends Model
         'path',
         'parent_id',
         'tenant_id',
-        'is_root',
-    ];
-
-    protected $casts = [
-        'is_root' => 'boolean',
     ];
 
     /**
@@ -71,7 +66,7 @@ class Folder extends Model
      */
     public function scopeRoots(Builder $query): Builder
     {
-        return $query->where('is_root', true)->whereNull('parent_id');
+        return $query->whereNull('parent_id');
     }
 
     /**
@@ -89,7 +84,7 @@ class Folder extends Model
      */
     public function getFullPath(): string
     {
-        if ($this->is_root || !$this->parent_id) {
+        if (!$this->parent_id) {
             return $this->path;
         }
 
@@ -138,7 +133,6 @@ class Folder extends Model
             'path' => $this->getFullPath() . '/' . $name,
             'parent_id' => $this->id,
             'tenant_id' => $this->tenant_id,
-            'is_root' => false,
         ]);
 
         $subfolder->save();
