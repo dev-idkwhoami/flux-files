@@ -51,7 +51,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         ]);
 
         $this->publishes([
-            __DIR__.'/App/Models' => app_path('Models'),
+            __DIR__.'/Models' => app_path('Models'),
         ], [
             'flux-files-install',
             'flux-files-models',
@@ -67,6 +67,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/flux-files.php' => config_path('flux-files.php'),
         ], [
+            'flux-files-install',
             'flux-files-config',
             'flux-files'
         ]);
@@ -98,7 +99,7 @@ class FluxFilesServiceProvider extends ServiceProvider
     private function registerBlueprintMacros(): void
     {
         Blueprint::macro('fluxFilesId', function (string $column = 'id') {
-            $idType = config('flux-files.id_type', 'bigint');
+            $idType = config('flux-files.eloquent.id_type', 'bigint');
 
             return match($idType) {
                 'ulid' => $this->ulid($column)->primary(),
@@ -108,7 +109,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         });
 
         Blueprint::macro('fluxFilesForeignId', function (string $column) {
-            $idType = config('flux-files.id_type', 'bigint');
+            $idType = config('flux-files.eloquent.id_type', 'bigint');
 
             return match($idType) {
                 'ulid' => $this->ulid($column),
@@ -118,7 +119,7 @@ class FluxFilesServiceProvider extends ServiceProvider
         });
 
         Blueprint::macro('nullableFluxFilesForeignId', function (string $column) {
-            $idType = config('flux-files.id_type', 'bigint');
+            $idType = config('flux-files.eloquent.id_type', 'bigint');
 
             return match($idType) {
                 'ulid' => $this->ulid($column)->nullable(),
