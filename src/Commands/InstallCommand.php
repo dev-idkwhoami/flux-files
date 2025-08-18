@@ -15,6 +15,12 @@ class InstallCommand extends Command
      */
     public function handle(): void
     {
+        $this->call('flux:icon', [
+            'icons' => [
+                'image', 'video', 'music', 'file-text', 'folder-archive', 'file-question-mark'
+            ]
+        ]);
+
         $this->call('vendor:publish', ['--tag' => 'flux-files-install']);
         $this->warn('Before you run these migrations, make sure the id_type in the config is set to your preferred type.');
     }

@@ -30,6 +30,7 @@ testbench.yaml
 /docs
 /coverage
 tasks.md
+concept.md
 
 #FluxUI
 auth.json
