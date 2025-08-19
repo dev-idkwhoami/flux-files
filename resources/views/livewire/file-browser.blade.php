@@ -63,33 +63,42 @@
         </nav>
 
         {{-- View controls --}}
-        <div class="flex items-center space-x-2">
-            {{-- Sort dropdown --}}
-            <flux:select variant="listbox" wire:model.live="sortBy" size="sm" class="w-fit">
-                <flux:select.option value="name">Name</flux:select.option>
-                <flux:select.option value="size">Size</flux:select.option>
-                <flux:select.option value="mime_type">Type</flux:select.option>
-                <flux:select.option value="created_at">Date</flux:select.option>
-            </flux:select>
-
-            {{-- Sort direction --}}
+        <flux:dropdown>
             <flux:button
                 square
                 variant="ghost"
-                wire:click.prevent="toggleSortDirection"
-                :icon="$this->sortDirection === 'desc' ? 'arrow-up-narrow-wide' : 'arrow-down-wide-narrow'"
-                tooltip="Toggle sort direction"
+                icon="settings-2"
+                tooltip="View controls"
             />
 
-            {{-- View mode toggle --}}
-            <flux:button
-                square
-                variant="ghost"
-                wire:click="toggleViewMode"
-                :icon="$viewMode !== 'grid' ? 'layout-grid' : 'table'"
-                tooltip="Toggle view mode"
-            />
-        </div>
+            <flux:popover class="w-64 space-y-2">
+                {{-- Sort by --}}
+                <div>
+                    <flux:label class="text-sm font-medium mb-2">Sort by</flux:label>
+                    <flux:select variant="listbox" wire:model.live="sortBy" size="sm">
+                        <flux:select.option value="name">Name</flux:select.option>
+                        <flux:select.option value="size">Size</flux:select.option>
+                        <flux:select.option value="mime_type">Type</flux:select.option>
+                        <flux:select.option value="created_at">Date</flux:select.option>
+                    </flux:select>
+                </div>
+                {{-- Sort direction and View mode --}}
+                <flux:button.group>
+                    <flux:button
+                        variant="filled"
+                        wire:click.prevent="toggleSortDirection"
+                        :icon="$this->sortDirection === 'desc' ? 'arrow-up-narrow-wide' : 'arrow-down-wide-narrow'"
+                        tooltip="Toggle sort direction"
+                    />
+                    <flux:button
+                        variant="filled"
+                        wire:click="toggleViewMode"
+                        :icon="$viewMode !== 'grid' ? 'layout-grid' : 'table'"
+                        tooltip="Toggle view mode"
+                    />
+                </flux:button.group>
+            </flux:popover>
+        </flux:dropdown>
     </div>
 
     <flux:separator/>
