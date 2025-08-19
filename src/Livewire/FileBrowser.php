@@ -2,15 +2,16 @@
 
 namespace Idkwhoami\FluxFiles\Livewire;
 
-use Idkwhoami\FluxFiles\DataObjects\Breadcrumb;
-use Idkwhoami\FluxFiles\Models\File;
-use Idkwhoami\FluxFiles\Models\Folder;
+use Idkwhoami\FluxFiles\Concrete\Breadcrumb;
 use Idkwhoami\FluxFiles\Enums\FileExtension;
 use Idkwhoami\FluxFiles\Enums\MimeType;
+use Idkwhoami\FluxFiles\Models\File;
+use Idkwhoami\FluxFiles\Models\Folder;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Session;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Livewire\Attributes\Computed;
 
 class FileBrowser extends Component
 {
@@ -18,35 +19,75 @@ class FileBrowser extends Component
 
     public ?int $currentFolderId = null;
 
+    #[Session('flux-files::view_mode')]
     public string $viewMode = 'grid';
     public array $allowedFileTypes = [];
 
     public ?int $openToDirectory = null;
     public ?int $tenantId = null;
+    public ?int $selected_file_id = null;
+    public ?int $restrictToFolder = null;
+    public bool $showActions = true;
+    public bool $allowFolderCreation = true;
 
     public string $sortBy = 'name';
     public string $sortDirection = 'desc';
 
     protected $listeners = [
-        'folderChanged' => 'handleFolderChanged'
+        'folderChanged' => 'handleFolderChanged',
+        'folder-created' => '$refresh',
+        'folder-renamed' => '$refresh',
+        'folder-deleted' => '$refresh',
+        'file-renamed' => '$refresh',
+        'file-deleted' => '$refresh'
     ];
 
     public function mount(
-        ?int $folderId = null,
         ?string $viewMode = null,
         array $allowedFileTypes = [],
         ?int $openToDirectory = null,
-        ?int $tenantId = null
+        ?int $tenantId = null,
+        ?int $selectedFile = null,
+        ?int $restrictToFolder = null,
+        bool $showActions = true,
+        bool $allowFolderCreation = true
     ): void {
-        $this->viewMode = $viewMode ?? config('flux-files.ui.default_view_mode', 'grid');
+        $this->viewMode = $viewMode ?? \session()->get('flux-files::view_mode') ?? config(
+            'flux-files.ui.default_view_mode',
+            'grid'
+        );
         $this->allowedFileTypes = !empty($allowedFileTypes) ? $allowedFileTypes : FileExtension::allExtensions();
         $this->tenantId = $tenantId;
+        $this->selected_file_id = $selectedFile;
+        $this->restrictToFolder = $restrictToFolder;
+        $this->showActions = $showActions;
+        $this->allowFolderCreation = $allowFolderCreation;
 
-        $this->currentFolderId = $openToDirectory ?? $folderId;
+        // If a selectedFileId is provided, automatically navigate to its folder
+        if ($selectedFile) {
+            $selectedFile = File::find($selectedFile);
+            if ($selectedFile) {
+                $this->currentFolderId = $selectedFile->folder_id;
+            } else {
+                $this->currentFolderId = $openToDirectory;
+            }
+        } else {
+            $this->currentFolderId = $openToDirectory;
+        }
     }
 
     public function navigateToFolder(?int $folderId = null): void
     {
+        // Check if navigation is restricted and if we're trying to go outside the boundary
+        if ($this->restrictToFolder !== null && $folderId !== null) {
+            if (!$this->isWithinRestrictedBoundary($folderId)) {
+                return; // Don't allow navigation outside the restricted folder
+            }
+        } elseif ($this->restrictToFolder !== null && $folderId === null) {
+            // Don't allow navigation to root if we have a restricted folder
+            return;
+        }
+
         $this->currentFolderId = $folderId;
         $this->resetPage();
         $this->dispatch('folder-changed', $folderId);
@@ -61,6 +102,7 @@ class FileBrowser extends Component
     {
         $file = File::find($fileId);
         if ($file) {
+            $this->selected_file_id = $fileId;
             $this->dispatch('file-selected', $file->toArray());
         }
     }
@@ -88,7 +130,9 @@ class FileBrowser extends Component
             $query->roots();
         }
 
-        return $query->orderBy($this->sortBy, $this->sortDirection)->get();
+        // Folders don't have size or mime_type fields, so sort by name when these are selected
+        $sortField = ($this->sortBy === 'size' || $this->sortBy === 'mime_type') ? 'name' : $this->sortBy;
+        return $query->orderBy($sortField, $this->sortDirection)->get();
     }
 
     #[Computed]
@@ -126,11 +170,22 @@ class FileBrowser extends Component
     #[Computed]
     public function breadcrumbs(): array
     {
-        /* TODO for some reason breadcrumbs dont include the current folder */
         $breadcrumbs = [];
 
         if (!$this->currentFolderId) {
-            $breadcrumbs[] = Breadcrumb::root();
+            // If we have a restricted folder, show that as root instead of true root
+            if ($this->restrictToFolder) {
+                $restrictedFolder = Folder::find($this->restrictToFolder);
+                if ($restrictedFolder) {
+                    $breadcrumbs[] = Breadcrumb::folder(
+                        id: $restrictedFolder->id,
+                        name: $restrictedFolder->name,
+                        path: $restrictedFolder->path
+                    );
+                }
+            } else {
+                $breadcrumbs[] = Breadcrumb::root();
+            }
             return $breadcrumbs;
         }
 
@@ -143,10 +198,28 @@ class FileBrowser extends Component
                 name: $folder->name,
                 path: $folder->path
             ));
+
+            // Stop at the restricted folder boundary
+            if ($this->restrictToFolder && $folder->id === $this->restrictToFolder) {
+                break;
+            }
+
             $folder = $folder->parent;
         }
 
-        array_unshift($breadcrumbItems, Breadcrumb::root());
+        // Add root or restricted folder as the first item
+        if ($this->restrictToFolder) {
+            $restrictedFolder = Folder::find($this->restrictToFolder);
+            if ($restrictedFolder && (!$breadcrumbItems || $breadcrumbItems[0]->id !== $this->restrictToFolder)) {
+                array_unshift($breadcrumbItems, Breadcrumb::folder(
+                    id: $restrictedFolder->id,
+                    name: $restrictedFolder->name,
+                    path: $restrictedFolder->path
+                ));
+            }
+        } else {
+            array_unshift($breadcrumbItems, Breadcrumb::root());
+        }
 
         $maxItems = config('flux-files.ui.breadcrumbs_max_items', 5);
         if (count($breadcrumbItems) > $maxItems) {
@@ -234,6 +307,35 @@ class FileBrowser extends Component
         }
 
         return $icons['default'] ?? 'file-question-mark';
+    }
+
+
+    protected function isWithinRestrictedBoundary(int $folderId): bool
+    {
+        if ($this->restrictToFolder === null) {
+            return true; // No restriction
+        }
+
+        // If trying to navigate to the restricted folder itself, that's allowed
+        if ($folderId === $this->restrictToFolder) {
+            return true;
+        }
+
+        // Check if the target folder is a descendant of the restricted folder
+        $folder = Folder::find($folderId);
+        if (!$folder) {
+            return false;
+        }
+
+        // Walk up the parent chain to see if we find the restricted folder
+        while ($folder && $folder->parent_id) {
+            if ($folder->parent_id === $this->restrictToFolder) {
+                return true;
+            }
+            $folder = $folder->parent;
+        }
+
+        return false;
     }
 
     protected function handleFolderChanged($folderId): void

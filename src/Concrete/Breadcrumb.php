@@ -1,6 +1,6 @@
 <?php
 
-namespace Idkwhoami\FluxFiles\DataObjects;
+namespace Idkwhoami\FluxFiles\Concrete;
 
 final readonly class Breadcrumb
 {

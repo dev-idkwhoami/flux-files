@@ -99,7 +99,12 @@ class FluxFilesServiceProvider extends ServiceProvider
 
     public function registerLivewireComponents(): void
     {
-        Livewire::component('flux-file-browser', FileBrowser::class);
+        Livewire::component('flux-files.browser', FileBrowser::class);
+        Livewire::component('flux-files.browser.create-folder', \Idkwhoami\FluxFiles\Livewire\Browser\CreateFolder::class);
+        Livewire::component('flux-files.browser.delete-file', \Idkwhoami\FluxFiles\Livewire\Browser\DeleteFile::class);
+        Livewire::component('flux-files.browser.delete-folder', \Idkwhoami\FluxFiles\Livewire\Browser\DeleteFolder::class);
+        Livewire::component('flux-files.browser.rename-file', \Idkwhoami\FluxFiles\Livewire\Browser\RenameFile::class);
+        Livewire::component('flux-files.browser.rename-folder', \Idkwhoami\FluxFiles\Livewire\Browser\RenameFolder::class);
     }
 
     /**

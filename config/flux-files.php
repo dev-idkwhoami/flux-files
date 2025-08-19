@@ -9,6 +9,21 @@ return [
         'disk' => env('FLUX_FILES_DISK', 'local'),
     ],
 
+    'localization' => [
+        'en' => [
+            'formats' => [
+                'date' => 'd/m/Y',
+                'datetime' => 'd/m/Y H:i:s',
+            ],
+        ],
+        'de' => [
+            'formats' => [
+                'date' => 'd.m.Y',
+                'datetime' => 'd.m.Y H:i:s',
+            ]
+        ]
+    ],
+
     'validation' => [
         'allowed_extensions' => FileExtension::allExtensions(),
 
