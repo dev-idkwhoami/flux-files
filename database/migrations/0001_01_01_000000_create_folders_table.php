@@ -7,11 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        $tableName = config('flux-files.eloquent.prefix')
-            ? config('flux-files.eloquent.prefix') . 'folders'
-            : 'folders';
-
-        Schema::create($tableName, function (Blueprint $table) {
+        Schema::create('folders', function (Blueprint $table) {
             $table->fluxFilesId();
 
             $table->string('name');
