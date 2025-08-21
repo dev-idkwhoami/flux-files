@@ -105,6 +105,10 @@ class FluxFilesServiceProvider extends ServiceProvider
         Livewire::component('flux-files.browser.delete-folder', \Idkwhoami\FluxFiles\Livewire\Browser\DeleteFolder::class);
         Livewire::component('flux-files.browser.rename-file', \Idkwhoami\FluxFiles\Livewire\Browser\RenameFile::class);
         Livewire::component('flux-files.browser.rename-folder', \Idkwhoami\FluxFiles\Livewire\Browser\RenameFolder::class);
+
+        Livewire::component('flux-files.upload', \Idkwhoami\FluxFiles\Livewire\FileUpload::class);
+        ;
+
     }
 
     /**

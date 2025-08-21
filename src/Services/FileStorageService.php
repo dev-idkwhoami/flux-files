@@ -15,24 +15,30 @@ class FileStorageService
     {
         $disk = $disk ?? config('filesystems.default');
 
-        $filename = Str::ulid() . '.' . $file->getClientOriginalExtension();
+        $filename = Str::ulid().'.'.$file->getClientOriginalExtension();
 
         $storagePath = $this->getStoragePath($tenantId);
-        $fullPath = $storagePath . '/' . $filename;
+        $fullPath = $storagePath.'/'.$filename;
 
         $path = $file->storeAs($storagePath, $filename, $disk);
 
-        $fileModel = new File([
-            'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-            'original_name' => $file->getClientOriginalName(),
-            'path' => $path,
-            'disk' => $disk,
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-            'folder_id' => $folderId,
-            'tenant_id' => $tenantId,
-            'metadata' => $this->extractMetadata($file),
-        ]);
+        $fileModel = new File(
+            array_merge(
+                [
+                    'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                    'original_name' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'disk' => $disk,
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'folder_id' => $folderId,
+                    'metadata' => $this->extractMetadata($file),
+                ],
+                config('flux-files.tenancy.enabled', false)
+                    ? ['tenant_id' => $tenantId]
+                    : []
+            )
+        );
 
         $fileModel->save();
 
@@ -67,7 +73,7 @@ class FileStorageService
     {
         $newFile = $file->replicate();
         $newFile->folder_id = $newFolderId;
-        $newFile->name = $newName ?? $file->name . ' (Copy)';
+        $newFile->name = $newName ?? $file->name.' (Copy)';
         $newFile->save();
 
         return $newFile;
@@ -81,7 +87,7 @@ class FileStorageService
     protected function getStoragePath(?int $tenantId = null): string
     {
         if (config('flux-files.tenancy.enabled') && $tenantId) {
-            return 'tenants/' . $tenantId;
+            return 'tenants/'.$tenantId;
         }
 
         return 'files';
@@ -146,7 +152,7 @@ class FileStorageService
     protected function getThumbnailPath(string $originalPath): string
     {
         $pathInfo = pathinfo($originalPath);
-        return $pathInfo['dirname'] . '/thumbnails/' . $pathInfo['filename'] . '_thumb.' . $pathInfo['extension'];
+        return $pathInfo['dirname'].'/thumbnails/'.$pathInfo['filename'].'_thumb.'.$pathInfo['extension'];
     }
 
     protected function isImage(string $mimeType): bool

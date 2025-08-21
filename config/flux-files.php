@@ -37,6 +37,9 @@ return [
 
     'upload' => [
         'chunk_size' => env('FLUX_FILES_CHUNK_SIZE', 1048576), // 1MB
+        'chunking_enabled' => env('FLUX_FILES_CHUNKING_ENABLED', true),
+        'max_parallel_uploads' => env('FLUX_FILES_MAX_PARALLEL', 3),
+        'min_file_size_for_chunking' => env('FLUX_FILES_MIN_CHUNK_SIZE', 5242880), // 5MB
         'timeout' => env('FLUX_FILES_TIMEOUT', 120), // 2 minutes
         'temp_directory' => storage_path('app/private/flux-files'),
         'auto_cleanup_temp' => true,
