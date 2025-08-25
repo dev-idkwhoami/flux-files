@@ -62,49 +62,85 @@
             @endif
         </nav>
 
-        {{-- View controls --}}
-        <flux:dropdown>
+        <div>
+            {{-- Upload button --}}
             <flux:button
                 square
                 variant="ghost"
-                icon="settings-2"
-                tooltip="View controls"
+                icon="upload"
+                tooltip="File Upload"
+                class="mr-2"
+                onclick="document.getElementById('file-browser-upload-input').click()"
             />
 
-            <flux:popover class="w-64 space-y-2">
-                {{-- Sort by --}}
-                <div>
-                    <flux:label class="text-sm font-medium mb-2">Sort by</flux:label>
-                    <flux:select variant="listbox" wire:model.live="sortBy" size="sm">
-                        <flux:select.option value="name">Name</flux:select.option>
-                        <flux:select.option value="size">Size</flux:select.option>
-                        <flux:select.option value="mime_type">Type</flux:select.option>
-                        <flux:select.option value="created_at">Date</flux:select.option>
-                    </flux:select>
-                </div>
-                {{-- Sort direction and View mode --}}
-                <flux:button.group>
-                    <flux:button
-                        variant="filled"
-                        wire:click.prevent="toggleSortDirection"
-                        :icon="$this->sortDirection === 'desc' ? 'arrow-up-narrow-wide' : 'arrow-down-wide-narrow'"
-                        tooltip="Toggle sort direction"
-                    />
-                    <flux:button
-                        variant="filled"
-                        wire:click="toggleViewMode"
-                        :icon="$viewMode !== 'grid' ? 'layout-grid' : 'table'"
-                        tooltip="Toggle view mode"
-                    />
-                </flux:button.group>
-            </flux:popover>
-        </flux:dropdown>
+            {{-- Hidden file input for OS file browser --}}
+            <input
+                id="file-browser-upload-input"
+                type="file"
+                multiple
+                class="hidden"
+                onchange="handleFileBrowserUpload(this.files)"
+            />
+
+            {{-- View controls --}}
+            <flux:dropdown>
+                <flux:button
+                    square
+                    variant="ghost"
+                    icon="settings-2"
+                    tooltip="View controls"
+                />
+
+                <flux:popover class="w-64 space-y-2">
+                    {{-- Sort by --}}
+                    <div>
+                        <flux:label class="text-sm font-medium mb-2">Sort by</flux:label>
+                        <flux:select variant="listbox" wire:model.live="sortBy" size="sm">
+                            <flux:select.option value="name">Name</flux:select.option>
+                            <flux:select.option value="size">Size</flux:select.option>
+                            <flux:select.option value="mime_type">Type</flux:select.option>
+                            <flux:select.option value="created_at">Date</flux:select.option>
+                        </flux:select>
+                    </div>
+                    {{-- Sort direction and View mode --}}
+                    <flux:button.group>
+                        <flux:button
+                            variant="filled"
+                            wire:click.prevent="toggleSortDirection"
+                            :icon="$this->sortDirection === 'desc' ? 'arrow-up-narrow-wide' : 'arrow-down-wide-narrow'"
+                            tooltip="Toggle sort direction"
+                        />
+                        <flux:button
+                            variant="filled"
+                            wire:click="toggleViewMode"
+                            :icon="$viewMode !== 'grid' ? 'layout-grid' : 'table'"
+                            tooltip="Toggle view mode"
+                        />
+                    </flux:button.group>
+                </flux:popover>
+            </flux:dropdown>
+        </div>
     </div>
 
     <flux:separator/>
 
-    {{-- Main content area --}}
-    @if($viewMode === 'grid')
+    {{-- Main content area with drag & drop --}}
+    <div
+        x-data="{
+            dragOver: false
+        }"
+        @dragover.prevent="dragOver = true"
+        @dragleave.prevent="dragOver = false"
+        @drop.prevent="
+            dragOver = false;
+            handleFileBrowserUpload($event.dataTransfer.files);
+        "
+        :class="{
+            'bg-blue-50 dark:bg-blue-900/20': dragOver
+        }"
+        class="transition-colors duration-200 min-h-96"
+    >
+        @if($viewMode === 'grid')
         {{-- Grid View --}}
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 gap-2 p-3">
             {{-- Folders --}}
@@ -316,6 +352,7 @@
             {{ $this->files->links() }}
         </div>
     @endif
+    </div>
 
     {{-- Create Folder Modal --}}
     <flux:modal name="create-folder-modal">
@@ -323,3 +360,28 @@
                                                    :key="'create-folder-modal-'.$this->currentFolderId"/>
     </flux:modal>
 </div>
+
+<script>
+    document.addEventListener('livewire:init', () => {
+        // Handle file uploads for both OS file browser and drag & drop
+        window.handleFileBrowserUpload = function(files) {
+            if (!files || files.length === 0) {
+                return;
+            }
+
+            // Convert FileList to Array
+            const fileArray = Array.from(files);
+
+            // Use Livewire's built-in upload functionality
+            for (let i = 0; i < fileArray.length; i++) {
+                @this.upload('tempFile', fileArray[i], (uploadedFilename) => {
+                    // File uploaded successfully - call backend to process it
+                    @this.call('processUploadedFile', uploadedFilename);
+                }, () => {
+                    // Upload failed
+                    console.error('Upload failed for file:', fileArray[i].name);
+                });
+            }
+        };
+    });
+</script>

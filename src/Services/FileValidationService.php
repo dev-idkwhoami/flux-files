@@ -5,10 +5,11 @@ namespace Idkwhoami\FluxFiles\Services;
 use Idkwhoami\FluxFiles\Enums\FileExtension;
 use Idkwhoami\FluxFiles\Enums\MimeType;
 use Illuminate\Http\UploadedFile;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class FileValidationService
 {
-    public function validateFileType(UploadedFile $file, ?array $allowedExtensions = null): bool
+    public function validateFileType(UploadedFile|TemporaryUploadedFile $file, ?array $allowedExtensions = null): bool
     {
         $allowedExtensions = $allowedExtensions ?? config('flux-files.validation.allowed_extensions', []);
 
@@ -20,7 +21,7 @@ class FileValidationService
         return in_array($extension, array_map('strtolower', $allowedExtensions));
     }
 
-    public function validateFileSize(UploadedFile $file, ?int $maxSizeInBytes = null): bool
+    public function validateFileSize(UploadedFile|TemporaryUploadedFile $file, ?int $maxSizeInBytes = null): bool
     {
         $maxSizeInBytes = $maxSizeInBytes ?? config('flux-files.validation.max_file_size', 10485760);
 
@@ -49,13 +50,17 @@ class FileValidationService
         return true;
     }
 
-    public function validateMimeType(UploadedFile $file): bool
+    public function validateMimeType(UploadedFile|TemporaryUploadedFile $file): bool
     {
         $detectedMimeType = $file->getMimeType();
-        $expectedMimeType = $file->getClientMimeType();
 
-        if ($detectedMimeType !== $expectedMimeType) {
-            return false;
+        // For TemporaryUploadedFile, we may not have getClientMimeType method, so we'll skip the comparison
+        if ($file::class === UploadedFile::class) {
+            $expectedMimeType = $file->getClientMimeType();
+
+            if ($detectedMimeType !== $expectedMimeType) {
+                return false;
+            }
         }
 
         $allowedMimeTypes = config('flux-files.validation.allowed_mime_types', []);
@@ -69,7 +74,7 @@ class FileValidationService
         return !in_array($detectedMimeType, $blockedMimeTypes);
     }
 
-    public function validateFile(UploadedFile $file, ?int $folderId = null, ?int $tenantId = null, array $customRules = []): array
+    public function validateFile(UploadedFile|TemporaryUploadedFile $file, ?int $folderId = null, ?int $tenantId = null, array $customRules = []): array
     {
         $errors = [];
 
@@ -92,7 +97,7 @@ class FileValidationService
         return $errors;
     }
 
-    public function isValid(UploadedFile $file, ?int $folderId = null, ?int $tenantId = null, array $customRules = []): bool
+    public function isValid(UploadedFile|TemporaryUploadedFile $file, ?int $folderId = null, ?int $tenantId = null, array $customRules = []): bool
     {
         return empty($this->validateFile($file, $folderId, $tenantId, $customRules));
     }

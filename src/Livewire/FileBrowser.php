@@ -12,10 +12,13 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Session;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+use Idkwhoami\FluxFiles\Services\FileStorageService;
 
 class FileBrowser extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     public ?int $currentFolderId = null;
 
@@ -33,13 +36,17 @@ class FileBrowser extends Component
     public string $sortBy = 'name';
     public string $sortDirection = 'desc';
 
+    // File upload properties
+    public $tempFile;
+
     protected $listeners = [
         'folderChanged' => 'handleFolderChanged',
         'folder-created' => '$refresh',
         'folder-renamed' => '$refresh',
         'folder-deleted' => '$refresh',
         'file-renamed' => '$refresh',
-        'file-deleted' => '$refresh'
+        'file-deleted' => '$refresh',
+        'upload-completed' => '$refresh'
     ];
 
     public function mount(
@@ -341,6 +348,35 @@ class FileBrowser extends Component
     protected function handleFolderChanged($folderId): void
     {
         $this->navigateToFolder($folderId);
+    }
+
+    public function processUploadedFile(string $filename): void
+    {
+        if (!$this->tempFile) {
+            return;
+        }
+
+        try {
+            $storageService = app(FileStorageService::class);
+
+            // Store the file in the current folder
+            $storedFile = $storageService->store(
+                $this->tempFile,
+                $this->currentFolderId,
+                config('flux-files.storage.disk'),
+                $this->tenantId
+            );
+
+            // Clear the temporary file
+            $this->tempFile = null;
+
+            // Refresh the component to show the new file
+            $this->dispatch('upload-completed');
+
+        } catch (\Throwable $e) {
+            // Handle upload error
+            $this->dispatch('upload-failed', message: $e->getMessage());
+        }
     }
 
     public function render(): View

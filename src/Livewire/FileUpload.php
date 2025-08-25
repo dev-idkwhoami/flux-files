@@ -2,13 +2,11 @@
 
 namespace Idkwhoami\FluxFiles\Livewire;
 
-use Idkwhoami\FluxFiles\Models\File;
-use Idkwhoami\FluxFiles\Models\Folder;
 use Idkwhoami\FluxFiles\Services\FileValidationService;
 use Idkwhoami\FluxFiles\Services\FileStorageService;
-use Idkwhoami\FluxFiles\Services\ChunkedUploadService;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Modelable;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -17,9 +15,12 @@ class FileUpload extends Component
 {
     use WithFileUploads;
 
+    protected $listeners = [
+        //'upload-completed' => 'handleFileUploadCompleted'
+    ];
+
     // Component properties
     public ?int $targetFolderId = null;
-    public array $uploadedFiles = [];
     public array $allowedTypes = [];
     public ?int $maxFileSize = null;
     public ?int $maxFiles = null;
@@ -28,17 +29,13 @@ class FileUpload extends Component
     public bool $dragDrop = true;
 
     // Upload state
+    #[Modelable]
     public array $files = [];
-    public array $uploadProgress = [];
+
     public array $validationErrors = [];
     public array $completedUploads = [];
     public bool $isUploading = false;
 
-    // Chunking configuration
-    public int $chunkSize;
-    public int $maxParallelUploads;
-    public int $minFileSizeForChunking;
-    public bool $chunkingEnabled;
 
     public function mount(
         ?int $targetFolderId = null,
@@ -56,12 +53,6 @@ class FileUpload extends Component
         $this->multiple = $multiple;
         $this->showPreviews = $showPreviews;
         $this->dragDrop = $dragDrop;
-
-        // Initialize chunking configuration
-        $this->chunkSize = config('flux-files.upload.chunk_size', 1048576);
-        $this->maxParallelUploads = config('flux-files.upload.max_parallel_uploads', 3);
-        $this->minFileSizeForChunking = config('flux-files.upload.min_file_size_for_chunking', 5242880); // 5MB
-        $this->chunkingEnabled = config('flux-files.upload.chunking_enabled', true);
     }
 
     #[Computed]
@@ -76,11 +67,6 @@ class FileUpload extends Component
         return app(FileStorageService::class);
     }
 
-    #[Computed]
-    public function chunkedUploadService(): ChunkedUploadService
-    {
-        return app(ChunkedUploadService::class);
-    }
 
     public function updatedFiles(): void
     {
@@ -92,6 +78,13 @@ class FileUpload extends Component
 
         if (empty($this->validationErrors)) {
             $this->startUpload();
+        }
+    }
+
+    public function handleFileUploadCompleted(): void
+    {
+        if ($this->targetFolderId === null) {
+            return;
         }
     }
 
@@ -129,12 +122,10 @@ class FileUpload extends Component
     protected function startUpload(): void
     {
         $this->isUploading = true;
-        $this->uploadProgress = [];
 
-        $this->dispatch('upload-started', count($this->files));
+        $this->dispatch('upload-started', fileCount: count($this->files));
 
         foreach ($this->files as $index => $file) {
-            $this->uploadProgress[$index] = 0;
             $this->processFileUpload($file, $index);
         }
     }
@@ -157,25 +148,23 @@ class FileUpload extends Component
                 'mime_type' => $file->getMimeType()
             ];
 
-            $this->uploadProgress[$index] = 100;
-            $this->dispatch('file-uploaded', $storedFile->id, $index);
+            $this->dispatch('file-uploaded', fileId: $storedFile->id, index: $index);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->validationErrors[$index] = ['Upload failed: '.$e->getMessage()];
-            $this->dispatch('file-upload-failed', $index, $e->getMessage());
+            $this->dispatch('file-upload-failed', index: $index, message: $e->getMessage());
         }
 
         // Check if all files are processed
         if (count($this->completedUploads) + count($this->validationErrors) === count($this->files)) {
             $this->isUploading = false;
-            $this->dispatch('upload-completed', count($this->completedUploads));
+            $this->dispatch('upload-completed', successCount: count($this->completedUploads));
         }
     }
 
     public function removeFile(int $index): void
     {
         unset($this->files[$index]);
-        unset($this->uploadProgress[$index]);
         unset($this->validationErrors[$index]);
         unset($this->completedUploads[$index]);
 
@@ -185,17 +174,20 @@ class FileUpload extends Component
     public function clearAll(): void
     {
         $this->files = [];
-        $this->uploadProgress = [];
         $this->validationErrors = [];
         $this->completedUploads = [];
         $this->isUploading = false;
     }
 
-    public function getPreviewUrl(TemporaryUploadedFile $file): ?string
+    /**
+     * Get preview URL for a file (TemporaryUploadedFile or chunked display object)
+     */
+    public function getPreviewUrl(mixed $file): ?string
     {
         if (!$this->showPreviews) {
             return null;
         }
+
 
         $mimeType = $file->getMimeType();
 
@@ -206,15 +198,10 @@ class FileUpload extends Component
         return null;
     }
 
-    public function isPreviewable(TemporaryUploadedFile $file): bool
-    {
-        $mimeType = $file->getMimeType();
-        return str_starts_with($mimeType, 'image/') ||
-            str_starts_with($mimeType, 'video/') ||
-            str_starts_with($mimeType, 'audio/');
-    }
-
-    public function getFileIcon(TemporaryUploadedFile $file): string
+    /**
+     * Get appropriate icon for a file (TemporaryUploadedFile or chunked display object)
+     */
+    public function getFileIcon(mixed $file): string
     {
         $mimeType = $file->getMimeType();
         $icons = config('flux-files.ui.file_icons');
@@ -240,178 +227,8 @@ class FileUpload extends Component
         return $icons['default'];
     }
 
-    // Chunked upload methods
-    public function initializeChunkedUpload(string $fileName, int $fileSize, string $mimeType): array
-    {
-        try {
-            // Create a temporary UploadedFile for validation
-            $tempFile = new class ($fileName, $mimeType, $fileSize) extends UploadedFile {
-                private $clientOriginalName;
-                private $mimeType;
-                private $size;
 
-                public function __construct(string $name, string $mimeType, int $size)
-                {
-                    $this->clientOriginalName = $name;
-                    $this->mimeType = $mimeType;
-                    $this->size = $size;
-                }
-
-                public function getClientOriginalName(): string
-                {
-                    return $this->clientOriginalName;
-                }
-
-                public function getMimeType(): string
-                {
-                    return $this->mimeType;
-                }
-
-                public function getSize(): int
-                {
-                    return $this->size;
-                }
-
-                public function getClientOriginalExtension(): string
-                {
-                    return pathinfo($this->clientOriginalName, PATHINFO_EXTENSION);
-                }
-
-                public function getClientMimeType(): string
-                {
-                    return $this->mimeType;
-                }
-
-                public function getPathname(): string
-                {
-                    return '';
-                }
-
-                public function isValid(): bool
-                {
-                    return true;
-                }
-
-                public function getError(): int
-                {
-                    return UPLOAD_ERR_OK;
-                }
-            };
-
-            // Validate the file
-            $errors = $this->validationService->validateFile(
-                $tempFile,
-                $this->targetFolderId,
-                null,
-                [
-                    'allowed_extensions' => $this->allowedTypes,
-                    'max_file_size' => $this->maxFileSize
-                ]
-            );
-
-            if (!empty($errors)) {
-                return [
-                    'success' => false,
-                    'errors' => $errors
-                ];
-            }
-
-            // Initialize chunked upload
-            $uploadId = $this->chunkedUploadService->initializeChunkedUpload($tempFile);
-
-            $this->dispatch('chunk-upload-initialized', $uploadId, $fileName);
-
-            return [
-                'success' => true,
-                'upload_id' => $uploadId,
-                'chunk_size' => $this->chunkedUploadService->getChunkSize(),
-                'should_chunk' => $this->chunkedUploadService->shouldUseChunking($tempFile)
-            ];
-
-        } catch (\Exception $e) {
-            $this->dispatch('chunk-upload-failed', $fileName, $e->getMessage());
-
-            return [
-                'success' => false,
-                'errors' => ['Upload initialization failed: '.$e->getMessage()]
-            ];
-        }
-    }
-
-    public function uploadChunk(string $uploadId, int $chunkIndex, string $chunkData): array
-    {
-        try {
-            $result = $this->chunkedUploadService->uploadChunk($uploadId, $chunkIndex, $chunkData);
-
-            // Update progress
-            $progress = $this->chunkedUploadService->getUploadProgress($uploadId);
-            $this->dispatch(
-                'chunk-progress',
-                $uploadId,
-                $progress['progress'],
-                $progress['received_chunks'],
-                $progress['total_chunks']
-            );
-
-            if ($result['completed']) {
-                // File upload completed
-                $file = File::find($result['file_id']);
-
-                // Update file with correct folder
-                if ($this->targetFolderId) {
-                    $file->folder_id = $this->targetFolderId;
-                    $file->save();
-                }
-
-                $this->dispatch('chunk-upload-completed', $uploadId, $file->id);
-
-                return [
-                    'success' => true,
-                    'completed' => true,
-                    'file_id' => $file->id,
-                    'progress' => 100
-                ];
-            }
-
-            return [
-                'success' => true,
-                'completed' => false,
-                'progress' => $result['progress'],
-                'received_chunks' => $result['received_chunks'],
-                'total_chunks' => $result['total_chunks']
-            ];
-
-        } catch (\Exception $e) {
-            $this->dispatch('chunk-upload-failed', $uploadId, $e->getMessage());
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    public function cancelChunkedUpload(string $uploadId): void
-    {
-        try {
-            $this->chunkedUploadService->cancelUpload($uploadId);
-            $this->dispatch('chunk-upload-cancelled', $uploadId);
-        } catch (\Exception $e) {
-            $this->dispatch('chunk-upload-failed', $uploadId, $e->getMessage());
-        }
-    }
-
-    public function getChunkingConfig(): array
-    {
-        return [
-            'enabled' => $this->chunkingEnabled,
-            'chunk_size' => $this->chunkSize,
-            'max_parallel_uploads' => $this->maxParallelUploads,
-            'min_file_size_for_chunking' => $this->minFileSizeForChunking
-        ];
-    }
-
-    public function render()
+    public function render(): View
     {
         return view('flux-files::livewire.file-upload');
     }
