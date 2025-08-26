@@ -30,7 +30,7 @@
     </flux:button.group>
 
     {{-- File browser modal --}}
-    <flux:modal name="file-select-modal" class="md:max-w-4xl">
+    <flux:modal name="file-select-modal" class="w-2/3 md:max-w-4xl">
         <flux:heading size="lg">Select a File</flux:heading>
 
         <livewire:flux-files.file-browser
@@ -40,7 +40,7 @@
             :tenantId="$tenantId"
             :showActions="false"
             :allowFolderCreation="false"
-            wire:key="file-browser-{{ $selectedFileId ?? 'none' }}"
+            wire:key="file-select-browser"
         />
 
         <div class="flex space-x-2">

@@ -5,6 +5,7 @@ namespace Idkwhoami\FluxFiles;
 use Idkwhoami\FluxFiles\Commands\InstallCommand;
 use Idkwhoami\FluxFiles\Livewire\FileBrowser;
 use Idkwhoami\FluxFiles\Livewire\FileSelect;
+use Idkwhoami\FluxFiles\Services\FluxFilesService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -14,6 +15,11 @@ class FluxFilesServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->registerBlueprintMacros();
+
+        // Bind FluxFilesService to the container
+        $this->app->singleton('flux-files', function () {
+            return new FluxFilesService();
+        });
     }
 
     public function boot(): void
@@ -26,7 +32,39 @@ class FluxFilesServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'flux-files');
 
         $this->loadViewComponentsAs('flux-files', [
-            //
+            // File/Folder Display Components
+            'file-icon' => \Illuminate\View\AnonymousComponent::class,
+            'folder-icon' => \Illuminate\View\AnonymousComponent::class,
+            'file-item-grid' => \Illuminate\View\AnonymousComponent::class,
+            'file-item-table' => \Illuminate\View\AnonymousComponent::class,
+            'file-preview' => \Illuminate\View\AnonymousComponent::class,
+            'file-tooltip' => \Illuminate\View\AnonymousComponent::class,
+            'file-size' => \Illuminate\View\AnonymousComponent::class,
+            'file-date' => \Illuminate\View\AnonymousComponent::class,
+
+            // Navigation & Control Components
+            'breadcrumbs' => \Illuminate\View\AnonymousComponent::class,
+            'view-mode-toggle' => \Illuminate\View\AnonymousComponent::class,
+            'sort-controls' => \Illuminate\View\AnonymousComponent::class,
+            'upload-button' => \Illuminate\View\AnonymousComponent::class,
+
+            // File Upload Components
+            'drop-zone' => \Illuminate\View\AnonymousComponent::class,
+            'file-restrictions' => \Illuminate\View\AnonymousComponent::class,
+            'upload-progress' => \Illuminate\View\AnonymousComponent::class,
+            'file-upload-item' => \Illuminate\View\AnonymousComponent::class,
+
+            // Modal & Action Components
+            'file-actions-dropdown' => \Illuminate\View\AnonymousComponent::class,
+            'folder-actions-dropdown' => \Illuminate\View\AnonymousComponent::class,
+            'file-select-input' => \Illuminate\View\AnonymousComponent::class,
+            'file-browser-modal' => \Illuminate\View\AnonymousComponent::class,
+
+            // State & Feedback Components
+            'empty-state' => \Illuminate\View\AnonymousComponent::class,
+            'loading-state' => \Illuminate\View\AnonymousComponent::class,
+            'validation-errors' => \Illuminate\View\AnonymousComponent::class,
+            'upload-summary' => \Illuminate\View\AnonymousComponent::class,
         ]);
 
         $this->registerLivewireComponents();

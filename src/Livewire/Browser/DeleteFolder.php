@@ -11,6 +11,9 @@ use Livewire\Component;
 class DeleteFolder extends Component
 {
     public ?int $folderId = null;
+    /**
+     * @var Folder $folder
+     */
     public $folder = null;
 
     public function mount(int $folderId): void
@@ -22,6 +25,8 @@ class DeleteFolder extends Component
     public function deleteFolder(): void
     {
         if ($this->folder) {
+            $this->folder->files()->delete();
+
             $this->folder->delete();
             $this->dispatch('folder-deleted')->to(FileBrowser::class);
             Flux::modal("delete-folder-modal-$this->folderId")->close();
