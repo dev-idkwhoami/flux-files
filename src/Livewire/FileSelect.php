@@ -40,14 +40,14 @@ class FileSelect extends Component
         $this->tenantId = $tenantId;
 
         if ($selectedFileId) {
-            $this->selectedFile = File::find($selectedFileId);
+            $this->selectedFile = config('flux-files.eloquent.file.model', File::class)::find($selectedFileId);
         }
     }
 
     public function handleFileSelected($fileData): void
     {
         $this->selectedFileId = $fileData['id'];
-        $this->selectedFile = File::find($fileData['id']);
+        $this->selectedFile = config('flux-files.eloquent.file.model', File::class)::find($fileData['id']);
 
         // Dispatch event for parent components
         $this->dispatch('file-selection-changed', [
@@ -58,7 +58,7 @@ class FileSelect extends Component
 
     public function selectFile(int $fileId): void
     {
-        $file = File::find($fileId);
+        $file = config('flux-files.eloquent.file.model', File::class)::find($fileId);
         if ($file) {
             $this->handleFileSelected($file->toArray());
         }

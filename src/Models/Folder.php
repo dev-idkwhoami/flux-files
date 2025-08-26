@@ -25,7 +25,7 @@ class Folder extends Model
      */
     public function files(): HasMany
     {
-        return $this->hasMany(File::class);
+        return $this->hasMany(config('flux-files.eloquent.file.model', File::class));
     }
 
     /**
@@ -33,7 +33,7 @@ class Folder extends Model
      */
     public function children(): HasMany
     {
-        return $this->hasMany(Folder::class, 'parent_id');
+        return $this->hasMany(config('flux-files.eloquent.folder.model', Folder::class), 'parent_id');
     }
 
     /**
@@ -41,7 +41,7 @@ class Folder extends Model
      */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'parent_id');
+        return $this->belongsTo(config('flux-files.eloquent.folder.model', Folder::class), 'parent_id');
     }
 
     /**

@@ -77,7 +77,7 @@ class FileBrowser extends Component
 
         // If a selectedFileId is provided, automatically navigate to its folder
         if ($selectedFile) {
-            $selectedFile = File::find($selectedFile);
+            $selectedFile = config('flux-files.eloquent.file.model', File::class)::find($selectedFile);
             if ($selectedFile) {
                 $this->currentFolderId = $selectedFile->folder_id;
             } else {
@@ -112,7 +112,7 @@ class FileBrowser extends Component
 
     public function selectFile(int $fileId): void
     {
-        $file = File::find($fileId);
+        $file = config('flux-files.eloquent.file.model', File::class)::find($fileId);
         if ($file) {
             $this->selected_file_id = $fileId;
             $this->dispatch('file-selected', $file->toArray());
@@ -133,7 +133,7 @@ class FileBrowser extends Component
     #[Computed]
     public function folders(): \Illuminate\Database\Eloquent\Collection
     {
-        $query = Folder::query()
+        $query = config('flux-files.eloquent.folder.model', Folder::class)::query()
             ->when(!is_null($this->tenantId), fn ($query) => $query->byTenant($this->tenantId));
 
         if ($this->currentFolderId) {
@@ -150,7 +150,7 @@ class FileBrowser extends Component
     #[Computed]
     public function files(): \Illuminate\Pagination\LengthAwarePaginator
     {
-        $query = File::query();
+        $query = config('flux-files.eloquent.file.model', File::class)::query();
 
         if ($this->tenantId) {
             $query->byTenant($this->tenantId);
@@ -176,7 +176,7 @@ class FileBrowser extends Component
     #[Computed]
     public function currentFolder(): ?Folder
     {
-        return $this->currentFolderId ? Folder::find($this->currentFolderId) : null;
+        return $this->currentFolderId ? config('flux-files.eloquent.folder.model', Folder::class)::find($this->currentFolderId) : null;
     }
 
     #[Computed]
@@ -187,7 +187,7 @@ class FileBrowser extends Component
         if (!$this->currentFolderId) {
             // If we have a restricted folder, show that as root instead of true root
             if ($this->restrictToFolder) {
-                $restrictedFolder = Folder::find($this->restrictToFolder);
+                $restrictedFolder = config('flux-files.eloquent.folder.model', Folder::class)::find($this->restrictToFolder);
                 if ($restrictedFolder) {
                     $breadcrumbs[] = Breadcrumb::folder(
                         id: $restrictedFolder->id,
@@ -201,7 +201,7 @@ class FileBrowser extends Component
             return $breadcrumbs;
         }
 
-        $folder = Folder::find($this->currentFolderId);
+        $folder = config('flux-files.eloquent.folder.model', Folder::class)::find($this->currentFolderId);
         $breadcrumbItems = [];
 
         while ($folder) {
@@ -221,7 +221,7 @@ class FileBrowser extends Component
 
         // Add root or restricted folder as the first item
         if ($this->restrictToFolder) {
-            $restrictedFolder = Folder::find($this->restrictToFolder);
+            $restrictedFolder = config('flux-files.eloquent.folder.model', Folder::class)::find($this->restrictToFolder);
             if ($restrictedFolder && (!$breadcrumbItems || $breadcrumbItems[0]->id !== $this->restrictToFolder)) {
                 array_unshift($breadcrumbItems, Breadcrumb::folder(
                     id: $restrictedFolder->id,
@@ -305,7 +305,7 @@ class FileBrowser extends Component
         }
 
         // Check if the target folder is a descendant of the restricted folder
-        $folder = Folder::find($folderId);
+        $folder = config('flux-files.eloquent.folder.model', Folder::class)::find($folderId);
         if (!$folder) {
             return false;
         }
