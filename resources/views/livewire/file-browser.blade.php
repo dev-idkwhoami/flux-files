@@ -67,7 +67,7 @@
             <flux:button
                 square
                 variant="ghost"
-                icon="upload"
+                :icon="$isUploading ? 'loading' : 'upload'"
                 tooltip="File Upload"
                 class="mr-2"
                 onclick="document.getElementById('file-browser-upload-input').click()"
@@ -372,15 +372,25 @@
             // Convert FileList to Array
             const fileArray = Array.from(files);
 
+            // Start upload state
+            Livewire.dispatch('start-upload');
+
             // Use Livewire's built-in upload functionality
             for (let i = 0; i < fileArray.length; i++) {
                 @this.upload('tempFile', fileArray[i], (uploadedFilename) => {
                     // File uploaded successfully - call backend to process it
                     @this.call('processUploadedFile', uploadedFilename);
                 }, () => {
-                    // Upload failed
+                    // Upload failed - end upload state
+                    Livewire.dispatch('end-upload');
                     console.error('Upload failed for file:', fileArray[i].name);
                 });
+            }
+
+            // Reset the file input to allow uploading the same file again
+            const fileInput = document.getElementById('file-browser-upload-input');
+            if (fileInput) {
+                fileInput.value = '';
             }
         };
     });

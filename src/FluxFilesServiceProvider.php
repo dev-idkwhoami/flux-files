@@ -4,6 +4,7 @@ namespace Idkwhoami\FluxFiles;
 
 use Idkwhoami\FluxFiles\Commands\InstallCommand;
 use Idkwhoami\FluxFiles\Livewire\FileBrowser;
+use Idkwhoami\FluxFiles\Livewire\FileSelect;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -100,6 +101,8 @@ class FluxFilesServiceProvider extends ServiceProvider
     public function registerLivewireComponents(): void
     {
         Livewire::component('flux-files.browser', FileBrowser::class);
+        Livewire::component('flux-files.file-browser', FileBrowser::class);
+        Livewire::component('flux-files.select', FileSelect::class);
         Livewire::component('flux-files.browser.create-folder', \Idkwhoami\FluxFiles\Livewire\Browser\CreateFolder::class);
         Livewire::component('flux-files.browser.delete-file', \Idkwhoami\FluxFiles\Livewire\Browser\DeleteFile::class);
         Livewire::component('flux-files.browser.delete-folder', \Idkwhoami\FluxFiles\Livewire\Browser\DeleteFolder::class);

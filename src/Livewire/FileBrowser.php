@@ -7,6 +7,7 @@ use Idkwhoami\FluxFiles\Enums\FileExtension;
 use Idkwhoami\FluxFiles\Enums\MimeType;
 use Idkwhoami\FluxFiles\Models\File;
 use Idkwhoami\FluxFiles\Models\Folder;
+use Idkwhoami\FluxFiles\Traits\HasFileIcons;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Session;
@@ -19,6 +20,7 @@ class FileBrowser extends Component
 {
     use WithPagination;
     use WithFileUploads;
+    use HasFileIcons;
 
     public ?int $currentFolderId = null;
 
@@ -38,6 +40,7 @@ class FileBrowser extends Component
 
     // File upload properties
     public $tempFile;
+    public bool $isUploading = false;
 
     protected $listeners = [
         'folderChanged' => 'handleFolderChanged',
@@ -46,7 +49,9 @@ class FileBrowser extends Component
         'folder-deleted' => '$refresh',
         'file-renamed' => '$refresh',
         'file-deleted' => '$refresh',
-        'upload-completed' => '$refresh'
+        'upload-completed' => '$refresh',
+        'start-upload' => 'startUpload',
+        'end-upload' => 'endUpload'
     ];
 
     public function mount(
@@ -286,35 +291,6 @@ class FileBrowser extends Component
         return array_unique($mimeTypes);
     }
 
-    public function getFileIcon(File $file): string
-    {
-        $icons = config('flux-files.ui.file_icons');
-
-        if ($file->isImage()) {
-            return $icons['image'] ?? 'file-question-mark';
-        }
-
-        if ($file->isVideo()) {
-            return $icons['video'] ?? 'file-question-mark';
-        }
-
-        if ($file->isAudio()) {
-            return $icons['audio'] ?? 'file-question-mark';
-        }
-
-        // Check for archive files by extension
-        $extension = strtolower(pathinfo($file->original_name, PATHINFO_EXTENSION));
-        if (in_array($extension, ['zip', 'rar', '7z', 'tar', 'gz'])) {
-            return $icons['archive'] ?? 'file-question-mark';
-        }
-
-        // Check for document files
-        if (str_starts_with($file->mime_type, 'application/') || str_starts_with($file->mime_type, 'text/')) {
-            return $icons['document'] ?? 'file-question-mark';
-        }
-
-        return $icons['default'] ?? 'file-question-mark';
-    }
 
 
     protected function isWithinRestrictedBoundary(int $folderId): bool
@@ -350,6 +326,16 @@ class FileBrowser extends Component
         $this->navigateToFolder($folderId);
     }
 
+    public function startUpload(): void
+    {
+        $this->isUploading = true;
+    }
+
+    public function endUpload(): void
+    {
+        $this->isUploading = false;
+    }
+
     public function processUploadedFile(string $filename): void
     {
         if (!$this->tempFile) {
@@ -370,10 +356,16 @@ class FileBrowser extends Component
             // Clear the temporary file
             $this->tempFile = null;
 
+            // End upload state
+            $this->endUpload();
+
             // Refresh the component to show the new file
             $this->dispatch('upload-completed');
 
         } catch (\Throwable $e) {
+            // End upload state on error
+            $this->endUpload();
+
             // Handle upload error
             $this->dispatch('upload-failed', message: $e->getMessage());
         }
